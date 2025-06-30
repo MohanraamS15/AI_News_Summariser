@@ -13,6 +13,11 @@
         {% endif %}
     </form>
 
+    {% if image_url %}
+        <hr>
+        <img src="{{ image_url }}" alt="Article Image" width="500">
+    {% endif %}
+
     {% if summary %}
         <hr>
         <h3>📝 NLP Summary:</h3>

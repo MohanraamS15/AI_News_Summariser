@@ -16,12 +16,10 @@ genai.configure(api_key=GEMINI_API_KEY)
 app = Flask(__name__)
 
 def extract_json_from_text(text):
-    # Try to find JSON object inside text
-    json_match = re.search(r'\{.*\}', text, re.DOTALL)
-    if json_match:
-        json_str = json_match.group()
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
         try:
-            return json.loads(json_str)
+            return json.loads(match.group())
         except json.JSONDecodeError:
             return None
     return None
@@ -38,6 +36,7 @@ def index():
     advanced_main_points = []
     advanced_keywords = []
     pub_date = ""
+    image_url = ""
 
     if request.method == "POST":
         url = request.form.get("url", "").strip()
@@ -59,6 +58,7 @@ def index():
             summary = article.summary
             keywords = article.keywords
             pub_date = article.publish_date.strftime("%B %d, %Y") if article.publish_date else "Not available"
+            image_url = article.top_image or ""
 
             polarity = TextBlob(article.text).sentiment.polarity
             sentiment = "Positive" if polarity > 0 else "Negative" if polarity < 0 else "Neutral"
@@ -79,9 +79,7 @@ Article:
 {article.text}
 """
                 response = model.generate_content(prompt)
-                response_text = response.text.strip()
-
-                advanced_data = extract_json_from_text(response_text)
+                advanced_data = extract_json_from_text(response.text.strip())
                 if not advanced_data:
                     advanced_summary = "Error: Could not parse advanced summary response."
                 else:
@@ -108,7 +106,8 @@ Article:
         advanced_title=advanced_title,
         advanced_tone=advanced_tone,
         advanced_main_points=advanced_main_points,
-        advanced_keywords=advanced_keywords
+        advanced_keywords=advanced_keywords,
+        image_url=image_url
     )
 
 if __name__ == "__main__":
