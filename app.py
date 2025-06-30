@@ -1,4 +1,6 @@
 import os
+import re
+import json
 from flask import Flask, render_template, request
 import requests
 from newspaper import Article
@@ -13,6 +15,17 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
+def extract_json_from_text(text):
+    # Try to find JSON object inside text
+    json_match = re.search(r'\{.*\}', text, re.DOTALL)
+    if json_match:
+        json_str = json_match.group()
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError:
+            return None
+    return None
+
 @app.route("/", methods=["GET", "POST"])
 def index():
     url = ""
@@ -20,6 +33,10 @@ def index():
     keywords = []
     sentiment = ""
     advanced_summary = ""
+    advanced_title = ""
+    advanced_tone = ""
+    advanced_main_points = []
+    advanced_keywords = []
     pub_date = ""
 
     if request.method == "POST":
@@ -31,7 +48,6 @@ def index():
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
             }
             response = requests.get(url, headers=headers)
-
             if response.status_code != 200:
                 raise Exception(f"❌ Failed to fetch article. Status code: {response.status_code}")
 
@@ -48,24 +64,32 @@ def index():
             sentiment = "Positive" if polarity > 0 else "Negative" if polarity < 0 else "Neutral"
 
             if action == "advanced":
-                try:
-                    model = genai.GenerativeModel("models/gemini-1.5-flash")
-                    prompt = f"""
-Summarize the following news article with these points:
-- Title
-- Published Date - find it it might be somewhere in the article (it is just a example for you -Jun 30, 2025 08:54 PM IST ,dont print the same),so after finding it, format it like this: June 30, 2025
-- Summary (4-5 sentences)
-- Tone of the article
-- Main points in bullets
--keywords(most important 5 to 6 keywords)
+                model = genai.GenerativeModel("models/gemini-1.5-flash")
+                prompt = f"""
+Respond only with valid JSON. No explanations or extra text.
+
+The JSON should have these keys:
+- "title" (string)
+- "summary" (string, 4-5 sentences)
+- "tone" (string)
+- "main_points" (array of strings, bullet points)
+- "keywords" (array of strings, 5-6 important ones)
 
 Article:
 {article.text}
 """
-                    response = model.generate_content(prompt)
-                    advanced_summary = response.text.strip()
-                except Exception as e:
-                    advanced_summary = f"Gemini Error: {e}"
+                response = model.generate_content(prompt)
+                response_text = response.text.strip()
+
+                advanced_data = extract_json_from_text(response_text)
+                if not advanced_data:
+                    advanced_summary = "Error: Could not parse advanced summary response."
+                else:
+                    advanced_title = advanced_data.get("title", "")
+                    advanced_summary = advanced_data.get("summary", "")
+                    advanced_tone = advanced_data.get("tone", "")
+                    advanced_main_points = advanced_data.get("main_points", [])
+                    advanced_keywords = advanced_data.get("keywords", [])
 
         except Exception as e:
             if action == "advanced":
@@ -79,8 +103,12 @@ Article:
         summary=summary,
         keywords=keywords,
         sentiment=sentiment,
+        pub_date=pub_date,
         advanced_summary=advanced_summary,
-        pub_date=pub_date
+        advanced_title=advanced_title,
+        advanced_tone=advanced_tone,
+        advanced_main_points=advanced_main_points,
+        advanced_keywords=advanced_keywords
     )
 
 if __name__ == "__main__":

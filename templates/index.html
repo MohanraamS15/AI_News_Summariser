@@ -33,7 +33,26 @@
     {% if advanced_summary %}
         <hr>
         <h3>🤖 Advanced AI Summary (Gemini):</h3>
-        <pre style="white-space: pre-wrap;">{{ advanced_summary }}</pre>
+        {% if advanced_title %}
+            <p><strong>Title:</strong> {{ advanced_title }}</p>
+        {% endif %}
+        <p><strong>Published Date:</strong> {{ pub_date }}</p>
+        <p><strong>Summary:</strong> {{ advanced_summary }}</p>
+        <p><strong>Tone:</strong> {{ advanced_tone }}</p>
+
+        <h4>Main Points:</h4>
+        <ul>
+            {% for point in advanced_main_points %}
+                <li>{{ point }}</li>
+            {% endfor %}
+        </ul>
+
+        <h4>Keywords:</h4>
+        <ul>
+            {% for kw in advanced_keywords %}
+                <li>{{ kw }}</li>
+            {% endfor %}
+        </ul>
     {% endif %}
 </body>
 </html>
