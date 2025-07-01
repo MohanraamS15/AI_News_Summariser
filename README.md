@@ -1,4 +1,4 @@
-#🚀 AI Article Summarizer
+# 🚀 AI Article Summarizer
 
 A modern web application that transforms any article into intelligent insights using advanced AI analysis and natural language processing.
 
