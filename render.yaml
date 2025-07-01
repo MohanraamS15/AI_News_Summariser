@@ -2,10 +2,23 @@ services:
   - type: web
     name: ai-article-summarizer
     env: python
-    buildCommand: pip install -r requirements.txt && python -m textblob.download_corpora
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    plan: free
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+      python -c "import nltk; nltk.download('punkt', download_dir='./nltk_data', quiet=True)"
+      python -c "import nltk; nltk.download('stopwords', download_dir='./nltk_data', quiet=True)"
+      python -c "import nltk; nltk.download('averaged_perceptron_tagger', download_dir='./nltk_data', quiet=True)"
+      python -c "import nltk; nltk.download('wordnet', download_dir='./nltk_data', quiet=True)"
+      python -c "import textblob; from textblob import download_corpora; download_corpora.download_all()"
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --timeout 120
+    healthCheckPath: /health
     envVars:
       - key: GEMINI_API_KEY
         sync: false
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: NLTK_DATA
+        value: ./nltk_data
+      - key: PORT
+        value: 10000
