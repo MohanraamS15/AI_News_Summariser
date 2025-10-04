@@ -193,7 +193,7 @@ def index():
             # Advanced AI analysis
             if action == "advanced":
                 try:
-                    model = genai.GenerativeModel("models/gemini-1.5-flash")
+                    model = genai.GenerativeModel("gemini-1.5-flash")
                     prompt = f"""
 Respond ONLY with JSON.
 
